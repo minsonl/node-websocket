@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>chat room</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+	<section class="container">
+		<div class="topCont" id="topCont"></div>
+		<div class="bodyCont">
+			<ul class="leftCont" id="leftCont"></ul>
+			<div class="mainCont">
+				<div class="chatCont" id="chatCont"></div>
+				<div class="editCont">
+					<textarea id="msgEle" placeholder="请输入要发送的消息"></textarea>
+					<input id="sendBtn" type="button" value="发送(enter)"/>
+				</div>
+			</div>
+		</div>
+	</section>
+
+
+<script>
+	var nickName=prompt("请输入你的名字","");
+	if(nickName.length>0){
+		var ws = new WebSocket('ws:localhost:3333');
+		ws.onopen = function(){
+			var sendBtn = document.getElementById("sendBtn");
+			ws.send(JSON.stringify({type:"sign",name:nickName}))
+			var msgEle = document.getElementById("msgEle");
+			msgEle.focus()
+			sendBtn.onclick = function(){
+				if (msgEle.value.length>1) {
+					ws.send(JSON.stringify({type:'chat',content:msgEle.value}));
+					msgEle.value = '';
+				}
+			}
+			msgEle.onkeyup = function(e){
+				if(e.keyCode==13){
+					ws.send(JSON.stringify({type:'chat',content:msgEle.value}));
+					msgEle.value = '';
+				}
+			}
+		}
+		ws.onmessage = function(msg){
+			if (JSON.parse(msg.data).type=="chat") {
+				var chatCont = document.getElementById("chatCont");
+				var pEle = document.createElement('p');
+				if (JSON.parse(msg.data).belong) {
+					pEle.className = 'msgCont belong';
+				} else{
+					pEle.className = 'msgCont';
+				}
+				pEle.innerHTML = JSON.parse(msg.data).msg;
+				chatCont.appendChild(pEle);
+				chatCont.scrollTop =chatCont.scrollHeight+100;
+			} else if(JSON.parse(msg.data).type=="sign"){
+				var users = JSON.parse(msg.data).users;
+				document.getElementById("topCont").innerText = users[0];
+				var leftCont = document.getElementById("leftCont");
+				leftCont.innerHTML = '';
+				users.forEach(function(item){
+					var li = document.createElement('li');
+					li.innerText = item;
+					leftCont.appendChild(li)
+				})
+			}else{}
+			
+		}
+	}
+</script>
+</body>
+</html>
